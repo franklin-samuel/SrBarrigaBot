@@ -2,19 +2,22 @@ import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaile
 import { Boom } from '@hapi/boom';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { logger } from '../utils/logger.ts';
+import { logger } from '../utils/logger.js';
 import qrcode from 'qrcode-terminal';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 class WhatsAppService {
+    private sock: any = null;
+    public isConnected: boolean = false;
+
     constructor() {
         this.sock = null;
         this.isConnected = false;
     }
 
-    async connect() {
+    async connect(): Promise<boolean> {
         try {
             logger.info('Conectando ao WhatsApp...');
 
@@ -31,7 +34,7 @@ class WhatsAppService {
 
             this.sock.ev.on('creds.update', saveCreds);
 
-            this.sock.ev.on('connection.update', (update) => {
+            this.sock.ev.on('connection.update', (update: any) => {
                 const { connection, lastDisconnect, qr } = update;
 
                 if (qr) {
@@ -42,7 +45,7 @@ class WhatsAppService {
                 if (connection === 'close') {
                     const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
 
-                    logger.warn('Conexão fechada. Reconectando:', shouldReconnect);
+                    logger.warn({ shouldReconnect }, 'Conexão fechada. Reconectando...');
 
                     if (shouldReconnect) {
                         this.connect();
@@ -66,12 +69,13 @@ class WhatsAppService {
 
             return true;
         } catch (error) {
-            logger.error('Erro ao conectar no WhatsApp:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error('Erro ao conectar no WhatsApp: ' + message);
             throw error;
         }
     }
 
-    formatPhoneNumber(number) {
+    formatPhoneNumber(number: string): string {
         let cleaned = number.replace(/\D/g, '');
 
         if (cleaned.startsWith('0')) {
@@ -85,9 +89,9 @@ class WhatsAppService {
         return cleaned + '@s.whatsapp.net';
     }
 
-    async sendMessage(number, message) {
+    async sendMessage(number: string, message: string): Promise<boolean> {
         try {
-            if (!this.isConnected) {
+            if (!this.isConnected || !this.sock) {
                 throw new Error('WhatsApp não está conectado');
             }
 
@@ -99,12 +103,13 @@ class WhatsAppService {
 
             return true;
         } catch (error) {
-            logger.error(`Erro ao enviar mensagem para ${number}:`, error.message);
+            const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error(`Erro ao enviar mensagem para ${number}: ${errorMsg}`);
             throw error;
         }
     }
 
-    async disconnect() {
+    async disconnect(): Promise<void> {
         if (this.sock) {
             await this.sock.logout();
             logger.info('WhatsApp desconectado');

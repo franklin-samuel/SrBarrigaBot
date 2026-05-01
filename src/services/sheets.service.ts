@@ -1,25 +1,34 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { GoogleSpreadsheet, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { config } from '../config/env.ts';
-import { logger } from '../utils/logger.ts';
+import { config } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+interface Pessoa {
+    nome: string;
+    telefone: string;
+    mesAtual: string;
+}
+
 class SheetsService {
+    private doc: GoogleSpreadsheet | null = null;
+    private sheet: GoogleSpreadsheetWorksheet | null = null;
+
     constructor() {
         this.doc = null;
         this.sheet = null;
     }
 
-    async init() {
+    async init(): Promise<boolean> {
         try {
             logger.info('Carregando credenciais do Google...');
 
-            const credentialsPath = join(__dirname, '../../', config.google.credentialsPath);
+            const credentialsPath = join(__dirname, '../../', config.google.credentialsPath!);
             const credentials = JSON.parse(readFileSync(credentialsPath, 'utf8'));
 
             const serviceAccountAuth = new JWT({
@@ -29,12 +38,13 @@ class SheetsService {
             });
 
             logger.info('Conectando ao Google Sheets...');
-            this.doc = new GoogleSpreadsheet(config.google.spreadsheetId, serviceAccountAuth);
+
+            this.doc = new GoogleSpreadsheet(config.google.spreadsheetId!, serviceAccountAuth);
 
             await this.doc.loadInfo();
             logger.info(`Planilha carregada: ${this.doc.title}`);
 
-            this.sheet = this.doc.sheetsByTitle[config.google.sheetName];
+            this.sheet = this.doc.sheetsByTitle[config.google.sheetName!];
 
             if (!this.sheet) {
                 throw new Error(`Sheet "${config.google.sheetName}" não encontrada na planilha`);
@@ -44,25 +54,24 @@ class SheetsService {
 
             return true;
         } catch (error) {
-            console.log("--- DEBUG DE ERRO ---");
-            console.log("Tipo do erro:", typeof error);
-            console.log("Instância de Error:", error instanceof Error);
-            console.error(error); // Isso vai imprimir o erro "cru" no terminal com a linha exata
-            console.log("---------------------");
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error('Erro no init do SheetsService: ' + message);
             throw error;
         }
     }
 
-    async getPessoas() {
+    async getPessoas(): Promise<Pessoa[]> {
         try {
             if (!this.sheet) {
                 await this.init();
             }
 
+            if (!this.sheet) throw new Error('Falha ao inicializar planilha');
+
             logger.info('📖 Lendo dados da planilha...');
             const rows = await this.sheet.getRows();
 
-            const pessoas = [];
+            const pessoas: Pessoa[] = [];
             const mesAtual = this.getMesAtual();
 
             for (const row of rows) {
@@ -75,7 +84,7 @@ class SheetsService {
 
                 pessoas.push({
                     nome: nome.trim(),
-                    telefone: telefone ? telefone.trim() : config.whatsapp.number,
+                    telefone: telefone ? telefone.trim() : config.whatsapp.number!,
                     mesAtual: mesAtual,
                 });
             }
@@ -84,12 +93,13 @@ class SheetsService {
             return pessoas;
 
         } catch (error) {
-            logger.error('Erro ao ler pessoas da planilha:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error('Erro ao ler pessoas da planilha: ' + message);
             throw error;
         }
     }
 
-    getMesAtual() {
+    private getMesAtual(): string {
         const meses = [
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'

@@ -1,16 +1,15 @@
 import cron from 'node-cron';
-import { sheetsService } from './services/sheets.service.ts';
-import { whatsappService } from './services/whatsapp.service.ts';
-import { logger } from './utils/logger.ts';
-import { config } from './config/env.ts';
+import { sheetsService } from './services/sheets.service.js';
+import { whatsappService } from './services/whatsapp.service.js';
+import { logger } from './utils/logger.js';
+import { config } from './config/env.js';
 
 class CobrancaBot {
-    async start() {
+    async start(): Promise<void> {
         try {
             logger.info('Iniciando bot de cobrança...');
 
             await whatsappService.connect();
-
             await sheetsService.init();
 
             logger.info('Bot inicializado com sucesso!');
@@ -23,15 +22,16 @@ class CobrancaBot {
             this.agendarCobranca();
 
         } catch (error) {
-            logger.error('Erro ao iniciar bot:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error('Erro ao iniciar bot: ' + message);
             process.exit(1);
         }
     }
 
-    agendarCobranca() {
+    agendarCobranca(): void {
         logger.info(`Agendando cronjob: ${config.cron.schedule}`);
 
-        cron.schedule(config.cron.schedule, async () => {
+        cron.schedule(config.cron.schedule!, async () => {
             logger.info('Executando cobrança agendada...');
             await this.executarCobranca();
         }, {
@@ -41,7 +41,7 @@ class CobrancaBot {
         logger.info('Cronjob agendado com sucesso!');
     }
 
-    async executarCobranca() {
+    async executarCobranca(): Promise<void> {
         try {
             logger.info('Buscando pessoas na planilha...');
 
@@ -62,18 +62,20 @@ class CobrancaBot {
                     await this.sleep(5000);
 
                 } catch (error) {
-                    logger.error(`Erro ao enviar mensagem para ${pessoa.nome}:`, error.message);
+                    const message = error instanceof Error ? error.message : 'Erro desconhecido';
+                    logger.error(`Erro ao enviar mensagem para ${pessoa.nome}: ` + message);
                 }
             }
 
-            logger.info('✅ Cobrança concluída!');
+            logger.info('Cobrança concluída!');
 
         } catch (error) {
-            logger.error('Erro ao executar cobrança:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error('Erro ao executar cobrança: ' + message);
         }
     }
 
-    criarMensagem(pessoa) {
+    private criarMensagem(pessoa: any): string {
         return `Olá ${pessoa.nome}! 👋
 
 Este é um lembrete automático sobre o pagamento referente ao mês de *${pessoa.mesAtual}*.
@@ -85,11 +87,11 @@ Caso já tenha pago, desconsidere esta mensagem.
 Qualquer dúvida, estou à disposição! 😊`;
     }
 
-    sleep(ms) {
+    private sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         logger.info('Encerrando bot...');
         await whatsappService.disconnect();
         process.exit(0);
