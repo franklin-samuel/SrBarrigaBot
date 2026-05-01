@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres-db-srbarrigabot
+    restart: always
+    environment:
+      POSTGRES_DB: srbarrigabot_db
+      POSTGRES_USER: srbarrigabot
+      POSTGRES_PASSWORD: srbarrigabot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data'
+
+volumes:
+  postgres_data:
