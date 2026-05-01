@@ -3,8 +3,8 @@ import { JWT } from 'google-auth-library';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { config } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { config } from '../config/env.ts';
+import { logger } from '../utils/logger.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +20,7 @@ class SheetsService {
             logger.info('Carregando credenciais do Google...');
 
             const credentialsPath = join(__dirname, '../../', config.google.credentialsPath);
-            const credentials = JSON.parse(readFileSync(credentialsPath, 'utf-8'));
+            const credentials = JSON.parse(readFileSync(credentialsPath, 'utf8'));
 
             const serviceAccountAuth = new JWT({
                 email: credentials.client_email,
@@ -44,7 +44,11 @@ class SheetsService {
 
             return true;
         } catch (error) {
-            logger.error('Erro ao inicializar Google Sheets:', error.message);
+            console.log("--- DEBUG DE ERRO ---");
+            console.log("Tipo do erro:", typeof error);
+            console.log("Instância de Error:", error instanceof Error);
+            console.error(error); // Isso vai imprimir o erro "cru" no terminal com a linha exata
+            console.log("---------------------");
             throw error;
         }
     }
