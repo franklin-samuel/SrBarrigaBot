@@ -4,6 +4,8 @@ import {Boom} from '@hapi/boom';
 import {join, dirname} from 'path';
 import {fileURLToPath} from 'url';
 import {EventEmitter} from 'events';
+import { rmSync, existsSync } from 'fs';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -88,15 +90,17 @@ export class WhatsAppService extends EventEmitter implements OnModuleDestroy {
     async disconnect(): Promise<void> {
         if (this.sock) {
             try {
-                this.sock.ev.removeAllListeners();
                 await this.sock.logout();
             } catch (error) {
                 console.warn('Erro ao desconectar:', error);
             } finally {
+                this.sock.ev.removeAllListeners();
                 this.sock = null;
                 this._isConnected = false;
                 this._needsQR = true;
                 this._currentQR = undefined;
+                this.clearAuthFiles();
+                this.emit('logged-out')
             }
         }
     }
@@ -146,5 +150,13 @@ export class WhatsAppService extends EventEmitter implements OnModuleDestroy {
 
     async onModuleDestroy() {
         await this.disconnect();
+    }
+
+    private clearAuthFiles(): void {
+        const authFolder = join(__dirname, '../../../auth_info');
+        if (existsSync(authFolder)) {
+            rmSync(authFolder, { recursive: true, force: true });
+            console.log('Arquivos de sessão removidos');
+        }
     }
 }
