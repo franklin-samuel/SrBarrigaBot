@@ -15,6 +15,7 @@ export class JwtUtil {
     generateAccessToken(userDetails: CustomUserDetails): string {
         const payload = {
             sub: userDetails.username,
+            userId: userDetails.userId,
         };
 
         return jwt.sign(payload, this.jwtSecret, {
@@ -25,6 +26,7 @@ export class JwtUtil {
     generateRefreshToken(userDetails: CustomUserDetails): string {
         const payload = {
             sub: userDetails.username,
+            userId: userDetails.userId,
         };
 
         return jwt.sign(payload, this.jwtSecret, {
@@ -35,6 +37,11 @@ export class JwtUtil {
     extractUsername(token: string): string {
         const decoded = jwt.verify(token, this.jwtSecret) as any;
         return decoded.sub;
+    }
+
+    extractUserId(token: string): string {
+        const decoded = jwt.verify(token, this.jwtSecret) as any;
+        return decoded.userId;
     }
 
     isTokenValid(token: string, userDetails: CustomUserDetails): boolean {

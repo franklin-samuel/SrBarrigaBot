@@ -41,7 +41,7 @@ export class UserController {
     @Get('me')
     @HttpCode(HttpStatus.OK)
     async me(@Req() req: any): Promise<ApiResponse<UserResponse>> {
-        const userId = req.userId;
+        const userId = req.user.id;
         const user = await this.userRepositoryPort.get(userId);
 
         if (!user) {
