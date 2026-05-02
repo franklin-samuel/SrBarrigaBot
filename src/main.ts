@@ -10,6 +10,8 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
       .setTitle("Sr. Barriga Bot API")
       .setDescription("API Configuração de Bot de Whatsapp")
