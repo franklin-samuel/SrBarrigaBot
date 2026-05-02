@@ -14,7 +14,7 @@ import { WsJwtGuard } from '../../security/guards/ws-jwt.guard.js';
 @Injectable()
 @WebSocketGateway({
     cors: {
-        origin: ['http://localhost:3000', 'https://sr-barriga-bot-web.vercel.app'],
+        origin: ['http://localhost:3000', 'https://srbarrigabotcomputaria.vercel.app'],
         credentials: true,
     },
     namespace: '/whatsapp',
