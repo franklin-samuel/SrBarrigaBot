@@ -21,6 +21,19 @@ export class WhatsAppService extends EventEmitter implements OnModuleDestroy {
 
     async connect(): Promise<boolean> {
         try {
+            if (this.sock) {
+                try {
+                    this.sock.ev.removeAllListeners();
+                    this.sock = null;
+                } catch (error) {
+                    console.warn('Erro ao limpar socket anterior:', error);
+                }
+            }
+
+            this._isConnected = false;
+            this._needsQR = false;
+            this._currentQR = undefined;
+
             const authFolder = join(__dirname, '../../../auth_info');
             const {state, saveCreds} = await useMultiFileAuthState(authFolder);
             const {version} = await fetchLatestBaileysVersion();
@@ -74,10 +87,17 @@ export class WhatsAppService extends EventEmitter implements OnModuleDestroy {
 
     async disconnect(): Promise<void> {
         if (this.sock) {
-            await this.sock.logout();
-            this._isConnected = false;
-            this._needsQR = true;
-            this._currentQR = undefined;
+            try {
+                this.sock.ev.removeAllListeners();
+                await this.sock.logout();
+            } catch (error) {
+                console.warn('Erro ao desconectar:', error);
+            } finally {
+                this.sock = null;
+                this._isConnected = false;
+                this._needsQR = true;
+                this._currentQR = undefined;
+            }
         }
     }
 
