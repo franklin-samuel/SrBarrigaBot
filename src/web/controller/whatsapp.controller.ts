@@ -5,7 +5,6 @@ import {Context} from '../../core/context.js';
 import {ApiResponse} from '../commons/api.response.js';
 import {JwtAuthGuard} from '../../security/guards/jwt-auth.guard.js';
 import {WhatsAppService} from '../../messaging/services/whatsapp.service.js';
-import {Observable, fromEvent, map} from 'rxjs';
 
 interface WhatsAppStatusResponse {
     isConnected: boolean;
@@ -46,39 +45,6 @@ export class WhatsAppController {
     async disconnect(): Promise<ApiResponse<string>> {
         await this.whatsappConnectionPort.disconnect();
         return ApiResponse.successMessage('WhatsApp desconectado com sucesso');
-    }
-
-    @Sse('qr/stream')
-    qrStream(): Observable<MessageEvent> {
-        return new Observable((subscriber) => {
-            const onQR = (qr: string) => {
-                subscriber.next({
-                    data: {qrCode: qr, type: 'qr'},
-                } as MessageEvent);
-            };
-
-            const onConnected = () => {
-                subscriber.next({
-                    data: {type: 'connected'},
-                } as MessageEvent);
-            };
-
-            const onDisconnected = () => {
-                subscriber.next({
-                    data: {type: 'disconnected'},
-                } as MessageEvent);
-            };
-
-            this.whatsappService.on('qr', onQR);
-            this.whatsappService.on('connected', onConnected);
-            this.whatsappService.on('disconnected', onDisconnected);
-
-            return () => {
-                this.whatsappService.off('qr', onQR);
-                this.whatsappService.off('connected', onConnected);
-                this.whatsappService.off('disconnected', onDisconnected);
-            };
-        });
     }
 
     @Post('execute-charge')
